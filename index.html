@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Jejum Intermitente</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8fce00">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Jejum">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw; height: 100vh;
+      display: flex; flex-direction: column;
+      background: #000; overflow: hidden;
+    }
+
+    /* NAV */
+    .nav-row {
+      display: flex; gap: 8px;
+      padding: 12px 12px 0;
+      background: #000; flex-shrink: 0;
+    }
+    .nav-btn {
+      flex: 1; background: #222; color: #aaa;
+      border: 1px solid #444; border-radius: 10px;
+      padding: 11px 6px; font-size: 14px;
+      cursor: pointer; text-align: center;
+      font-family: inherit; font-weight: 600;
+    }
+    .nav-btn.active { background: #8fce00; color: #000; border-color: #8fce00; }
+
+    /* TOPBAR */
+    .topbar {
+      background: #1a1a1a; color: #fff;
+      font-size: 17px; font-weight: bold;
+      padding: 13px 16px;
+      border-bottom: 1px solid #333;
+      margin-top: 10px; flex-shrink: 0;
+    }
+
+    /* SCREEN */
+    .screen-area {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; height: 0;
+    }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .content { padding: 14px; }
+
+    /* BUTTONS */
+    .btn-green {
+      width: 100%; background: #8fce00; color: #000;
+      border: none; border-radius: 10px; padding: 15px;
+      font-size: 17px; font-weight: bold; cursor: pointer;
+      font-family: inherit; margin-top: 12px;
+    }
+    .btn-gray {
+      width: 100%; background: #555; color: #fff;
+      border: none; border-radius: 10px; padding: 15px;
+      font-size: 17px; font-weight: bold; cursor: pointer;
+      font-family: inherit; margin-top: 8px;
+    }
+    .btn-red {
+      background: #4a0000; color: #e84040;
+      border: 1px solid #7a0000; border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; font-weight: bold;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn-blue {
+      width: 100%; background: #004a7a; color: #4fc3f7;
+      border: 1px solid #0077b6; border-radius: 10px; padding: 15px;
+      font-size: 17px; font-weight: bold; cursor: pointer;
+      font-family: inherit; margin-top: 8px;
+    }
+
+    /* HORÁRIOS REGISTRADOS */
+    .horarios-box {
+      background: #111; border: 1px solid #333;
+      border-radius: 12px; padding: 16px;
+      margin-bottom: 14px;
+    }
+    .horario-linha {
+      display: flex; justify-content: space-between;
+      align-items: center; padding: 8px 0;
+      border-bottom: 1px solid #222;
+    }
+    .horario-linha:last-child { border-bottom: none; }
+    .horario-label { font-size: 14px; color: #888; }
+    .horario-valor { font-size: 22px; font-weight: bold; color: #fff; }
+    .horario-valor.preenchido { color: #8fce00; }
+    .horario-valor.vazio { color: #444; }
+
+    /* LIVE SECTION */
+    .live-section {
+      background: #111; border: 1px solid #333;
+      border-radius: 12px; padding: 16px;
+      margin-top: 16px; text-align: center;
+    }
+    .live-label { font-size: 14px; color: #888; margin-bottom: 6px; }
+    .live-timer { font-size: 46px; font-weight: bold; color: #fff; letter-spacing: 2px; }
+    .live-sub { font-size: 13px; color: #8fce00; margin-top: 5px; font-weight: 600; }
+
+    /* DIVIDER */
+    .divider { border: none; border-top: 1px solid #333; margin: 20px 0 10px; }
+
+    /* PROTOCOL CARDS */
+    .section-title { font-size: 14px; color: #888; margin-bottom: 10px; }
+    .result-card {
+      background: #1e1e1e; border: 1px solid #333;
+      border-radius: 12px; padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .result-card.destaque { border-color: #8fce00; background: #1a2200; }
+    .result-card.expirado { opacity: 0.6; }
+    .result-protocol { font-size: 17px; font-weight: bold; color: #fff; }
+    .result-desc { font-size: 12px; color: #888; margin-top: 3px; }
+    .result-time { font-size: 22px; font-weight: bold; color: #8fce00; text-align: right; }
+    .result-card.expirado .result-time { color: #e84040; }
+    .result-sublabel { font-size: 11px; color: #888; margin-top: 2px; text-align: right; }
+    .progress-bg {
+      background: #333; border-radius: 4px;
+      height: 6px; overflow: hidden; margin-top: 8px; width: 120px;
+    }
+    .progress-fill { height: 100%; background: #8fce00; border-radius: 4px; transition: width 1s linear; }
+    .progress-fill.danger { background: #e84040; }
+
+    /* BADGES */
+    .badge {
+      font-size: 10px; border-radius: 4px;
+      padding: 2px 5px; font-weight: bold;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .badge-green { background: #8fce00; color: #000; }
+    .badge-red { background: #e84040; color: #fff; }
+    .badge-gray { background: #444; color: #ccc; }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: #444; font-size: 15px; line-height: 1.8;
+    }
+    .empty-icon { font-size: 46px; margin-bottom: 10px; }
+
+    /* HISTÓRICO */
+    .hist-item {
+      background: #1e1e1e; border: 1px solid #333;
+      border-radius: 12px; padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .hist-item.destaque-hist { border-color: #8fce00; background: #1a2200; }
+    .hist-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .hist-data { font-size: 15px; font-weight: bold; color: #fff; }
+    .hist-tipo { font-size: 20px; font-weight: bold; color: #8fce00; }
+    .hist-tipo.sem-jejum-cor { color: #e84040; }
+    .hist-meta { font-size: 12px; color: #888; margin-top: 5px; }
+    .hist-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+    .hist-empty {
+      text-align: center; padding: 30px 16px;
+      color: #444; font-size: 14px; line-height: 1.8;
+    }
+
+    /* CRONÔMETROS REGRESSIVOS */
+    .cronocard {
+      background: #1e1e1e; border: 1px solid #333;
+      border-radius: 14px; padding: 18px 16px;
+      margin-bottom: 14px; text-align: center;
+      transition: border-color 0.3s;
+    }
+    .cronocard.completo { border-color: #e84040; background: #1a0a0a; }
+    .cronocard-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .cronocard-title { font-size: 20px; font-weight: bold; color: #fff; }
+    .cronocard-sub { font-size: 12px; color: #888; margin-top: 2px; }
+    .cronocard-timer {
+      font-size: 42px; font-weight: bold; color: #fff;
+      letter-spacing: 2px; margin: 10px 0;
+    }
+    .cronocard-timer.completo { color: #e84040; }
+    .cronocard-status {
+      font-size: 13px; font-weight: 600; margin-top: 4px;
+    }
+    .cronocard-status.verde { color: #8fce00; }
+    .cronocard-status.cinza { color: #888; }
+    .cronocard-status.vermelho { color: #e84040; }
+    .cronocard-bar {
+      background: #333; border-radius: 6px;
+      height: 10px; overflow: hidden; margin-top: 12px;
+    }
+    .cronocard-bar-fill {
+      height: 100%; background: #8fce00; border-radius: 6px;
+      transition: width 1s linear;
+    }
+    .cronocard-bar-fill.completo { background: #e84040; }
+    .cronocard-meta {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: #666; margin-top: 6px;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1a2200; color: #8fce00; border: 1px solid #8fce00;
+      border-radius: 10px; padding: 14px 24px; font-weight: bold;
+      font-size: 15px; z-index: 1000; opacity: 0; pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .toast.show { opacity: 1; }
+    .toast.erro { background: #1a0a0a; color: #e84040; border-color: #e84040; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- NAV -->
+  <div class="nav-row">
+    <button class="nav-btn active" id="nav-jejum"       onclick="showScreen('jejum')">⏱ Jejum</button>
+    <button class="nav-btn"        id="nav-cronometros" onclick="showScreen('cronometros')">⏳ Cronôm.</button>
+    <button class="nav-btn"        id="nav-historico"   onclick="showScreen('historico')">📅 Histórico</button>
+  </div>
+
+  <div class="screen-area">
+
+    <!-- ══════════════════════════════════════════
+         TELA 1 — JEJUM
+    ══════════════════════════════════════════ -->
+    <div class="screen active" id="screen-jejum">
+      <div class="topbar">⏱ Controle de Jejum</div>
+      <div class="content">
+
+        <div class="horarios-box">
+          <div class="horario-linha">
+            <span class="horario-label">🌅 Primeira refeição</span>
+            <span class="horario-valor vazio" id="disp-primeira">--:--</span>
+          </div>
+          <div class="horario-linha">
+            <span class="horario-label">🌙 Última refeição</span>
+            <span class="horario-valor vazio" id="disp-ultima">--:--</span>
+          </div>
+        </div>
+
+        <button class="btn-green" onclick="registrarPrimeira()">🌅 Primeira Refeição</button>
+        <button class="btn-blue"  onclick="registrarUltima()">🌙 Última Refeição</button>
+        <button class="btn-gray"  onclick="limpar()">Limpar</button>
+
+        <div id="resultado" style="display:none;">
+          <div class="live-section">
+            <div class="live-label">Tempo de jejum atual</div>
+            <div class="live-timer" id="live-timer">00:00:00</div>
+            <div class="live-sub"   id="live-sub"></div>
+          </div>
+
+          <hr class="divider">
+          <div class="section-title">Horário limite para comer — por protocolo</div>
+          <div id="cards-container"></div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">🍽️</div>
+          Toque em <strong>Primeira Refeição</strong> quando<br>começar a comer, e em <strong>Última Refeição</strong><br>quando terminar o dia.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TELA 2 — CRONÔMETROS REGRESSIVOS (JANELA)
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-cronometros">
+      <div class="topbar">⏳ Cronômetros da Janela</div>
+      <div class="content">
+
+        <div class="horarios-box">
+          <div class="horario-linha">
+            <span class="horario-label">🌅 Início da janela</span>
+            <span class="horario-valor vazio" id="disp-inicio-janela">--:--</span>
+          </div>
+        </div>
+
+        <button class="btn-green" onclick="iniciarCronometros()">Iniciar Contagem Regressiva</button>
+        <button class="btn-gray"  onclick="limparCronometros()">Limpar</button>
+
+        <div id="cronometros-resultado" style="display:none; margin-top:10px;">
+          <div class="section-title">Tempo restante da janela de alimentação</div>
+          <div id="cronocards-container"></div>
+        </div>
+
+        <div id="cronometros-empty" class="empty-state">
+          <div class="empty-icon">⏳</div>
+          Toque em <strong>Primeira Refeição</strong> na aba Jejum<br>para iniciar os cronômetros automaticamente.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TELA 3 — HISTÓRICO
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-historico">
+      <div class="topbar">📅 Histórico</div>
+      <div class="content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="section-title" style="margin:0;">Dias registrados</div>
+          <button class="btn-red" onclick="limparHistorico()">Apagar tudo</button>
+        </div>
+        <div id="hist-lista"></div>
+      </div>
+    </div>
+
+  </div><!-- /screen-area -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Protocolos ────────────────────────────────────────────────
+const PROTOCOLOS = [
+  { id: '12-12', label: '12:12', janela: 12, jejum: 12, desc: '12h de jejum · 12h de janela' },
+  { id: '16-8',  label: '16:8',  janela:  8, jejum: 16, desc: '16h de jejum · 8h de janela'  },
+  { id: '18-6',  label: '18:6',  janela:  6, jejum: 18, desc: '18h de jejum · 6h de janela'  },
+  { id: '20-4',  label: '20:4',  janela:  4, jejum: 20, desc: '20h de jejum · 4h de janela'  },
+];
+
+// ─── Storage ───────────────────────────────────────────────────
+function loadHistorico() {
+  try { return JSON.parse(localStorage.getItem('ji_historico') || '[]'); } catch(e) { return []; }
+}
+function saveHistorico(hist) {
+  try { localStorage.setItem('ji_historico', JSON.stringify(hist)); } catch(e) {}
+}
+function loadPrimeira() {
+  try {
+    const raw = localStorage.getItem('ji_primeira_refeicao');
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj.data === hojeIso() ? obj : null;
+  } catch(e) { return null; }
+}
+function savePrimeira(hora) {
+  try { localStorage.setItem('ji_primeira_refeicao', JSON.stringify({ data: hojeIso(), hora })); } catch(e) {}
+}
+function clearPrimeira() {
+  try { localStorage.removeItem('ji_primeira_refeicao'); } catch(e) {}
+}
+
+// ─── Navegação ─────────────────────────────────────────────────
+function showScreen(name) {
+  ['jejum','cronometros','historico'].forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('active', s === name);
+    document.getElementById('nav-' + s).classList.toggle('active', s === name);
+  });
+  if (name === 'historico') renderHistorico();
+}
+
+// ─── Utils ─────────────────────────────────────────────────────
+function horaAtual() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  return h + ':' + m;
+}
+function parseHora(val) {
+  const [h, m] = val.split(':').map(Number);
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  if (d > now) d.setDate(d.getDate() - 1);
+  return d;
+}
+function addHoras(date, horas) {
+  return new Date(date.getTime() + horas * 3600 * 1000);
+}
+function formatHora(date) {
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function formatDuracao(ms) {
+  if (ms < 0) ms = 0;
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function formatDataPtBr(isoDate) {
+  const [y,mo,d] = isoDate.split('-');
+  return d+'/'+mo+'/'+y;
+}
+function hojeIso() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm   = String(now.getMonth()+1).padStart(2,'0');
+  const dd   = String(now.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function classificarPorJanela(primeiraH, ultimaH) {
+  let [ph, pm] = primeiraH.split(':').map(Number);
+  let [uh, um] = ultimaH.split(':').map(Number);
+  let primeiraMin = ph * 60 + pm;
+  let ultimaMin   = uh * 60 + um;
+  if (ultimaMin < primeiraMin) ultimaMin += 24 * 60;
+  const janelaMin = ultimaMin - primeiraMin;
+  const janelaH   = janelaMin / 60;
+  const jejumH    = 24 - janelaH;
+
+  let tipo = null;
+  if (jejumH >= 20)      tipo = PROTOCOLOS.find(p => p.id === '20-4');
+  else if (jejumH >= 18) tipo = PROTOCOLOS.find(p => p.id === '18-6');
+  else if (jejumH >= 16) tipo = PROTOCOLOS.find(p => p.id === '16-8');
+  else if (jejumH >= 12) tipo = PROTOCOLOS.find(p => p.id === '12-12');
+
+  return { janelaH, jejumH, tipo };
+}
+
+function showToast(msg, erro) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (erro ? ' erro' : '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TELA 1 — JEJUM
+// ═══════════════════════════════════════════════════════════════
+let refeicaoDate = null;
+let timerInterval = null;
+let primeiraHora = null;
+let ultimaHora = null;
+
+function atualizarDisplayHorarios() {
+  const elP = document.getElementById('disp-primeira');
+  const elU = document.getElementById('disp-ultima');
+  if (primeiraHora) {
+    elP.textContent = primeiraHora;
+    elP.className = 'horario-valor preenchido';
+  } else {
+    elP.textContent = '--:--';
+    elP.className = 'horario-valor vazio';
+  }
+  if (ultimaHora) {
+    elU.textContent = ultimaHora;
+    elU.className = 'horario-valor preenchido';
+  } else {
+    elU.textContent = '--:--';
+    elU.className = 'horario-valor vazio';
+  }
+}
+
+function atualizarDisplayInicioJanela() {
+  const el = document.getElementById('disp-inicio-janela');
+  if (inicioJejumDate) {
+    el.textContent = formatHora(inicioJejumDate);
+    el.className = 'horario-valor preenchido';
+  } else {
+    el.textContent = '--:--';
+    el.className = 'horario-valor vazio';
+  }
+}
+
+function registrarPrimeira() {
+  primeiraHora = horaAtual();
+  savePrimeira(primeiraHora);
+  atualizarDisplayHorarios();
+
+  // Inicia os 4 cronômetros regressivos da JANELA automaticamente
+  iniciarCronometrosAuto(primeiraHora);
+
+  showToast('Primeira refeição: ' + primeiraHora + ' — Cronômetros iniciados!');
+}
+
+function registrarUltima() {
+  if (!primeiraHora) {
+    showToast('Registre a primeira refeição primeiro.', true);
+    return;
+  }
+  ultimaHora = horaAtual();
+  atualizarDisplayHorarios();
+
+  // Atualiza cronômetro progressivo com a última refeição
+  refeicaoDate = parseHora(ultimaHora);
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('resultado').style.display = 'block';
+  renderCards();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(atualizarTimer, 1000);
+  atualizarTimer();
+  try { localStorage.setItem('ji_ultima_refeicao', refeicaoDate.toISOString()); } catch(e) {}
+
+  // Classifica e salva no histórico
+  const { janelaH, jejumH, tipo } = classificarPorJanela(primeiraHora, ultimaHora);
+  const data = hojeIso();
+
+  const hist = loadHistorico();
+  const idx = hist.findIndex(d => d.data === data);
+  if (idx >= 0) hist.splice(idx, 1);
+
+  hist.unshift({
+    data,
+    primeira: primeiraHora,
+    ultima: ultimaHora,
+    janelaH,
+    jejumH,
+    tipo: tipo ? tipo.label : 'Sem Jejum'
+  });
+  saveHistorico(hist);
+
+  showToast('Dia encerrado! Jejum: ' + (tipo ? tipo.label : 'Sem Jejum'));
+}
+
+function limpar() {
+  if (timerInterval) clearInterval(timerInterval);
+  if (regressiveInterval) clearInterval(regressiveInterval);
+  refeicaoDate = null;
+  primeiraHora = null;
+  ultimaHora = null;
+  inicioJejumDate = null;
+  atualizarDisplayHorarios();
+  atualizarDisplayInicioJanela();
+  document.getElementById('resultado').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('cronometros-resultado').style.display = 'none';
+  document.getElementById('cronometros-empty').style.display = 'block';
+  try {
+    localStorage.removeItem('ji_ultima_refeicao');
+    clearPrimeira();
+    localStorage.removeItem('ji_inicio_jejum');
+  } catch(e) {}
+}
+
+function renderCards() {
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+  const now = new Date();
+  PROTOCOLOS.forEach((p, i) => {
+    const limite   = addHoras(refeicaoDate, p.janela);
+    const expirado = now > limite;
+    const card = document.createElement('div');
+    card.className = 'result-card' + (i === 0 ? ' destaque' : '') + (expirado ? ' expirado' : '');
+    card.id = 'card-' + p.id;
+    const badgeHtml = i === 0
+      ? '<span class="badge badge-green">mais fácil</span>'
+      : expirado ? '<span class="badge badge-red">expirado</span>' : '';
+    card.innerHTML = `
+      <div>
+        <div class="result-protocol">${p.label} ${badgeHtml}</div>
+        <div class="result-desc">${p.desc}</div>
+        <div class="progress-bg">
+          <div class="progress-fill${expirado?' danger':''}" id="bar-${p.id}" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="result-time">${formatHora(limite)}</div>
+        <div class="result-sublabel">${expirado ? 'Janela fechada' : 'Coma até'}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+  atualizarBarras();
+}
+
+function atualizarTimer() {
+  if (!refeicaoDate) return;
+  const now = new Date();
+  const elapsed = now - refeicaoDate;
+  document.getElementById('live-timer').textContent = formatDuracao(elapsed);
+  const h = elapsed / 3600000;
+  let status = h < 12  ? 'Dentro da janela 12:12'
+             : h < 16  ? '✓ Jejum 12:12 completo'
+             : h < 18  ? '✓ Jejum 16:8 completo'
+             : h < 20  ? '✓ Jejum 18:6 completo'
+             :            '✓ Jejum 20:4 completo';
+  document.getElementById('live-sub').textContent = status;
+  atualizarBarras();
+}
+
+function atualizarBarras() {
+  if (!refeicaoDate) return;
+  const now = new Date();
+  const elapsed = now - refeicaoDate;
+  PROTOCOLOS.forEach(p => {
+    const pct = Math.min((elapsed / (p.janela * 3600000)) * 100, 100);
+    const bar = document.getElementById('bar-' + p.id);
+    if (!bar) return;
+    bar.style.width = pct.toFixed(1) + '%';
+    pct >= 100 ? bar.classList.add('danger') : bar.classList.remove('danger');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TELA 2 — CRONÔMETROS REGRESSIVOS DA JANELA
+// ═══════════════════════════════════════════════════════════════
+let inicioJejumDate = null;
+let regressiveInterval = null;
+
+function iniciarCronometrosAuto(horaStr) {
+  inicioJejumDate = parseHora(horaStr);
+  atualizarDisplayInicioJanela();
+  document.getElementById('cronometros-empty').style.display = 'none';
+  document.getElementById('cronometros-resultado').style.display = 'block';
+  renderCronocards();
+  if (regressiveInterval) clearInterval(regressiveInterval);
+  regressiveInterval = setInterval(atualizarCronometros, 1000);
+  atualizarCronometros();
+  try { localStorage.setItem('ji_inicio_jejum', inicioJejumDate.toISOString()); } catch(e) {}
+}
+
+function iniciarCronometros() {
+  if (!primeiraHora) {
+    showToast('Registre a primeira refeição na aba Jejum primeiro.', true);
+    return;
+  }
+  iniciarCronometrosAuto(primeiraHora);
+}
+
+function limparCronometros() {
+  if (regressiveInterval) clearInterval(regressiveInterval);
+  inicioJejumDate = null;
+  atualizarDisplayInicioJanela();
+  document.getElementById('cronometros-resultado').style.display = 'none';
+  document.getElementById('cronometros-empty').style.display = 'block';
+  try { localStorage.removeItem('ji_inicio_jejum'); } catch(e) {}
+}
+
+function renderCronocards() {
+  const container = document.getElementById('cronocards-container');
+  container.innerHTML = '';
+  PROTOCOLOS.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'cronocard';
+    card.id = 'cronocard-' + p.id;
+    card.innerHTML = `
+      <div class="cronocard-header">
+        <div>
+          <div class="cronocard-title">${p.label} <span class="badge badge-gray">${p.janela}h janela</span></div>
+          <div class="cronocard-sub">${p.desc}</div>
+        </div>
+      </div>
+      <div class="cronocard-timer" id="crono-timer-${p.id}">00:00:00</div>
+      <div class="cronocard-status cinza" id="crono-status-${p.id}">Calculando…</div>
+      <div class="cronocard-bar">
+        <div class="cronocard-bar-fill" id="crono-bar-${p.id}" style="width:0%"></div>
+      </div>
+      <div class="cronocard-meta">
+        <span>Início: ${formatHora(inicioJejumDate)}</span>
+        <span id="crono-alvo-${p.id}">Fecha: --:--</span>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function atualizarCronometros() {
+  if (!inicioJejumDate) return;
+  const now = new Date();
+  PROTOCOLOS.forEach(p => {
+    // Contagem regressiva da JANELA DE ALIMENTAÇÃO (p.janela), não do jejum
+    const alvo = addHoras(inicioJejumDate, p.janela);
+    const restante = alvo - now;
+    const elapsed = now - inicioJejumDate;
+    const total = p.janela * 3600000;
+    const pct = Math.min((elapsed / total) * 100, 100);
+
+    const timerEl = document.getElementById('crono-timer-' + p.id);
+    const statusEl = document.getElementById('crono-status-' + p.id);
+    const barEl = document.getElementById('crono-bar-' + p.id);
+    const cardEl = document.getElementById('cronocard-' + p.id);
+    const alvoEl = document.getElementById('crono-alvo-' + p.id);
+
+    if (alvoEl) alvoEl.textContent = 'Fecha: ' + formatHora(alvo);
+
+    if (restante > 0) {
+      // Ainda dentro da janela de alimentação
+      if (timerEl) timerEl.textContent = formatDuracao(restante);
+      if (timerEl) timerEl.classList.remove('completo');
+      if (statusEl) {
+        statusEl.textContent = '⏳ Janela aberta — ' + p.janela + 'h restantes';
+        statusEl.className = 'cronocard-status cinza';
+      }
+      if (barEl) {
+        barEl.style.width = pct.toFixed(1) + '%';
+        barEl.className = 'cronocard-bar-fill';
+      }
+      if (cardEl) cardEl.classList.remove('completo');
+    } else {
+      // Janela fechada
+      const excedente = Math.abs(restante);
+      if (timerEl) {
+        timerEl.textContent = formatDuracao(excedente);
+        timerEl.classList.add('completo');
+      }
+      if (statusEl) {
+        statusEl.textContent = '✗ Janela ' + p.label + ' fechada!';
+        statusEl.className = 'cronocard-status vermelho';
+      }
+      if (barEl) {
+        barEl.style.width = '100%';
+        barEl.className = 'cronocard-bar-fill completo';
+      }
+      if (cardEl) cardEl.classList.add('completo');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TELA 3 — HISTÓRICO
+// ═══════════════════════════════════════════════════════════════
+function renderHistorico() {
+  const hist = loadHistorico();
+  const lista = document.getElementById('hist-lista');
+  lista.innerHTML = '';
+  if (!hist.length) {
+    lista.innerHTML = '<div class="hist-empty"><div style="font-size:40px;margin-bottom:10px;">📅</div>Nenhum dia registrado ainda.<br>Use "Última Refeição" na aba Jejum.</div>';
+    return;
+  }
+  hist.forEach((d, i) => {
+    const semJejum = d.tipo === 'Sem Jejum';
+    const item = document.createElement('div');
+    item.className = 'hist-item' + (!semJejum && i === 0 ? ' destaque-hist' : '');
+    item.innerHTML = `
+      <div class="hist-top">
+        <div>
+          <div class="hist-data">${formatDataPtBr(d.data)}</div>
+          <div class="hist-meta">
+            🌅 Início: <strong>${d.primeira}</strong> &nbsp;|&nbsp; 🌙 Fim: <strong>${d.ultima}</strong>
+          </div>
+          <div class="hist-meta" style="margin-top:4px;">
+            Janela: ${d.janelaH.toFixed(1)}h &nbsp;·&nbsp; Jejum: ${d.jejumH.toFixed(1)}h
+          </div>
+        </div>
+        <div class="hist-tipo${semJejum ? ' sem-jejum-cor' : ''}">${d.tipo}</div>
+      </div>
+      <div class="hist-actions">
+        <button class="btn-red" onclick="deletarDia('${d.data}')">Remover</button>
+      </div>`;
+    lista.appendChild(item);
+  });
+}
+
+function deletarDia(data) {
+  const hist = loadHistorico().filter(d => d.data !== data);
+  saveHistorico(hist);
+  renderHistorico();
+}
+
+function limparHistorico() {
+  if (!confirm('Apagar todo o histórico?')) return;
+  saveHistorico([]);
+  renderHistorico();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BOOTSTRAP
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  const now = new Date();
+
+  // Restaura primeira refeição do dia
+  const savedPrimeira = loadPrimeira();
+  if (savedPrimeira) {
+    primeiraHora = savedPrimeira.hora;
+    atualizarDisplayHorarios();
+  }
+
+  // Restaura última refeição salva (cronômetro progressivo)
+  try {
+    const saved = localStorage.getItem('ji_ultima_refeicao');
+    if (saved) {
+      refeicaoDate = new Date(saved);
+      ultimaHora = String(refeicaoDate.getHours()).padStart(2,'0') + ':' + String(refeicaoDate.getMinutes()).padStart(2,'0');
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('resultado').style.display   = 'block';
+      renderCards();
+      timerInterval = setInterval(atualizarTimer, 1000);
+      atualizarTimer();
+    }
+  } catch(e) {}
+
+  // Restaura início da janela salvo (cronômetros regressivos)
+  try {
+    const savedJejum = localStorage.getItem('ji_inicio_jejum');
+    if (savedJejum) {
+      inicioJejumDate = new Date(savedJejum);
+      atualizarDisplayInicioJanela();
+      document.getElementById('cronometros-empty').style.display = 'none';
+      document.getElementById('cronometros-resultado').style.display = 'block';
+      renderCronocards();
+      regressiveInterval = setInterval(atualizarCronometros, 1000);
+      atualizarCronometros();
+    }
+  } catch(e) {}
+});
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').catch(function(err) {
+        console.log('SW registration failed:', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
